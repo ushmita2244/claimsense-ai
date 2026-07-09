@@ -53,6 +53,32 @@ while True:
     for source in response.diagnostics.sources:
         print(f"• {source}")
     
+    
+    
+    print("\n" + "=" * 80)
+    print("PERFORMANCE METRICS")
+    print("=" * 80)
+
+    print(
+        f"Embedding Time : {response.performance.embedding_time * 1000:.2f} ms"
+    )
+
+    print(
+        f"Retrieval Time : {response.performance.retrieval_time * 1000:.2f} ms"
+    )
+
+    print(
+        f"Prompt Time    : {response.performance.prompt_time * 1000:.2f} ms"
+    )
+
+    print(
+        f"LLM Time       : {response.performance.llm_time:.2f} sec"
+    )
+
+    print(
+        f"Total Time     : {response.performance.total_time:.2f} sec"
+    )
+
 
     print("\n" + "=" * 80)
     print("ANSWER")
