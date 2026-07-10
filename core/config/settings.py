@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     EXCELLENT_DISTANCE_THRESHOLD: float = 0.20
     GOOD_DISTANCE_THRESHOLD: float = 0.35
     AVERAGE_DISTANCE_THRESHOLD: float = 0.50
+    OPIK_PROJECT_NAME: str = "ClaimSense-AI"
 
     model_config = SettingsConfigDict(
         env_file=".env",

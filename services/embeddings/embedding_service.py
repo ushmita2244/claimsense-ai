@@ -1,5 +1,6 @@
 from google import genai
 from core.config.settings import settings
+import opik
 
 class EmbeddingService:
     def __init__(self):
@@ -7,6 +8,9 @@ class EmbeddingService:
             api_key = settings.GOOGLE_API_KEY
         )
         
+    @opik.track(
+        type = "embedding"
+    )
     def generate_embedding(self, text: str) -> list[float]:
         response = self.client.models.embed_content(
             model = settings.EMBEDDING_MODEL,

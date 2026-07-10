@@ -1,4 +1,5 @@
 from models.retrieved_document import RetrievedDocument
+from models.chunk_reference import ChunkReference
 
 def make_document(
     text="Sample",
@@ -11,4 +12,15 @@ def make_document(
         source=source,
         chunk_number=chunk_number,
         distance=distance,
+    )
+    
+
+def make_chunk(
+    chunk_number: int,
+    distance: float
+) -> ChunkReference:
+
+    return ChunkReference(
+        chunk_number=chunk_number,
+        distance=distance
     )

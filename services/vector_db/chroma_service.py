@@ -1,4 +1,5 @@
 from chromadb import PersistentClient
+import opik
 
 class ChromaService:
 
@@ -28,6 +29,10 @@ class ChromaService:
             embeddings=[embedding],
             metadatas=[metadata or {}]
         )
+        
+    @opik.track(
+    type = "tool"
+    )
     def search(self, query_embedding: list[float], top_k: int = 3):
 
         return self.collection.query(

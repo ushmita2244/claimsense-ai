@@ -1,6 +1,7 @@
 
 from services.vector_db.chroma_service import ChromaService
 from models.retrieved_document import RetrievedDocument
+import opik
 
 
 class Retriever:
@@ -9,6 +10,9 @@ class Retriever:
 
         self.vector_db = ChromaService()
 
+    @opik.track(
+        type = "retrieval"
+    )
     def retrieve(
         self,
         query_embedding: list[float],

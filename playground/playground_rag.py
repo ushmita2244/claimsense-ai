@@ -43,42 +43,71 @@ while True:
     print("RETRIEVAL DIAGNOSTICS")
     print("=" * 80)
 
-    print(f"Documents Retrieved : {response.diagnostics.total_documents}")
-    print(f"Top Distance        : {response.diagnostics.top_distance:.4f}")
-    print(f"Average Distance    : {response.diagnostics.average_distance:.4f}")
-    print(f"Retrieval Quality   : {response.diagnostics.retrieval_quality}")
+    print(f"Documents Retrieved : {response.evaluation.diagnostics.total_documents}")
+    print(f"Top Distance        : {response.evaluation.diagnostics.top_distance:.4f}")
+    print(f"Average Distance    : {response.evaluation.diagnostics.average_distance:.4f}")
+    print(f"Retrieval Quality   : {response.evaluation.diagnostics.retrieval_quality}")
 
     print("\nSources")
 
-    for source in response.diagnostics.sources:
+    for source in response.evaluation.diagnostics.sources:
         print(f"• {source}")
     
     
+    performance = response.evaluation.performance
     
     print("\n" + "=" * 80)
     print("PERFORMANCE METRICS")
     print("=" * 80)
 
     print(
-        f"Embedding Time : {response.performance.embedding_time * 1000:.2f} ms"
+        f"Embedding Time : {performance.embedding_time * 1000:.2f} ms"
     )
 
     print(
-        f"Retrieval Time : {response.performance.retrieval_time * 1000:.2f} ms"
+        f"Retrieval Time : {performance.retrieval_time * 1000:.2f} ms"
     )
 
     print(
-        f"Prompt Time    : {response.performance.prompt_time * 1000:.2f} ms"
+        f"Prompt Time    : {performance.prompt_time * 1000:.2f} ms"
     )
 
     print(
-        f"LLM Time       : {response.performance.llm_time:.2f} sec"
+        f"LLM Time       : {performance.llm_time:.2f} sec"
     )
 
     print(
-        f"Total Time     : {response.performance.total_time:.2f} sec"
+        f"Total Time     : {performance.total_time:.2f} sec"
     )
+    
+    
 
+    print("\n" + "=" * 80)
+    print("SOURCES")
+    print("=" * 80)
+    
+    for index, citation in enumerate(response.evaluation.citations, start=1):
+    
+        print(f"\n[{index}] {citation.source}")
+    
+        for chunk in citation.chunks:
+        
+            print(
+                f"    Chunk {chunk.chunk_number:<3}"
+                f" Distance : {chunk.distance:.4f}"
+            )
+    
+    
+    stats = response.evaluation.answer_statistics
+
+    print("\n" + "=" * 80)
+    print("ANSWER STATISTICS")
+    print("=" * 80)
+    
+    print(f"Characters : {stats.character_count}")
+    print(f"Words      : {stats.word_count}")
+    print(f"Lines      : {stats.line_count}")
+    
 
     print("\n" + "=" * 80)
     print("ANSWER")
