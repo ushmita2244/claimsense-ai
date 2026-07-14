@@ -2,16 +2,17 @@
 from services.vector_db.chroma_service import ChromaService
 from models.retrieved_document import RetrievedDocument
 import opik
+from services.retrieval.base_retriever import BaseRetriever
 
 
-class Retriever:
+class Retriever(BaseRetriever):
 
     def __init__(self):
 
         self.vector_db = ChromaService()
 
     @opik.track(
-        type = "retrieval"
+        type = "tool"
     )
     def retrieve(
         self,

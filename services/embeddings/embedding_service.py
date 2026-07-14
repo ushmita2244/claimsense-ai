@@ -9,7 +9,7 @@ class EmbeddingService:
         )
         
     @opik.track(
-        type = "embedding"
+        type = "tool"
     )
     def generate_embedding(self, text: str) -> list[float]:
         response = self.client.models.embed_content(
