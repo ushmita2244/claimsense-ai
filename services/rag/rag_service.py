@@ -1,5 +1,6 @@
 import opik
 from core.utils.timer import Timer
+from models import retrieval_response
 from services.prompts.rag_prompt import RAGPrompt
 from services.embeddings.embedding_service import EmbeddingService
 from services.llm.gemini_service import GeminiService
@@ -22,7 +23,6 @@ class RAGService:
 
     def __init__(self):
 
-        self.embedding_service = EmbeddingService()
         self.retriever = Retriever()
         self.llm = GeminiService()
         self.diagnostics = DiagnosticsService()
@@ -45,25 +45,31 @@ class RAGService:
 
         with Timer() as total_timer:
             
-            # Embedding
-            with Timer() as timer:
-                query_embedding = self.embedding_service.generate_embedding(question)
-            embedding_time = timer.elapsed
 
             # Retrieval
+            
             with Timer() as timer:
-                retrieved_documents = self.retriever.retrieve(
-                    query_embedding=query_embedding
+
+                retrieval_response = self.retriever.retrieve(
+                    query=question
                 )
-            retrieval_time = timer.elapsed
+
+            retrieved_documents = retrieval_response.documents
+
+            embedding_time = retrieval_response.embedding_time
+
+            retrieval_time = retrieval_response.retrieval_time
 
             # Diagnostics
+            
             diagnostics = self.diagnostics.analyze(retrieved_documents)
             
             #Citations
+            
             citations = self.attribution.build(retrieved_documents)
 
             # Prompt
+            
             with Timer() as timer:
                 prompt = RAGPrompt.build(
                     question=question,

@@ -1,24 +1,32 @@
 from services.evaluation.retrieval_benchmark import RetrievalBenchmark
+
+from models.retrieval_response import RetrievalResponse
 from models.retrieval_test_case import RetrievalTestCase
+
 from tests.helpers import make_document
 
 
 class DummyRetriever:
 
-    def retrieve(self, query_embedding, top_k=3):
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3
+    ) -> RetrievalResponse:
 
-        return [
-            make_document(
-                chunk_number=5
-            )
-        ]
+        return RetrievalResponse(
 
+            documents=[
+                make_document(
+                    chunk_number=5
+                )
+            ],
 
-class DummyEmbeddingService:
+            embedding_time=0.01,
 
-    def generate_embedding(self, text):
+            retrieval_time=0.02
 
-        return [0.1, 0.2, 0.3]
+        )
 
 
 def test_benchmark_runs():
@@ -38,14 +46,13 @@ def test_benchmark_runs():
         dataset=dataset
     )
 
-    benchmark.embedding_service = DummyEmbeddingService()
-
     report = benchmark.run()
 
     assert report.total_queries == 1
     assert report.successful_retrievals == 1
     assert report.success_rate == 1.0
-    
+
+
 def test_failed_benchmark():
 
     dataset = [
@@ -63,9 +70,7 @@ def test_failed_benchmark():
         dataset=dataset
     )
 
-    benchmark.embedding_service = DummyEmbeddingService()
-
     report = benchmark.run()
 
     assert report.successful_retrievals == 0
-    assert report.success_rate == 0
+    assert report.success_rate == 0.0

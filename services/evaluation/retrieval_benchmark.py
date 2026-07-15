@@ -17,7 +17,6 @@ class RetrievalBenchmark:
         dataset: list[RetrievalTestCase]
     ):
 
-        self.embedding_service = EmbeddingService()
         self.retriever = retriever
         self.dataset = dataset
         self.evaluator = RetrievalEvaluator()
@@ -41,14 +40,12 @@ class RetrievalBenchmark:
             # Retrieve Documents
             # ==========================================
 
-            query_embedding = self.embedding_service.generate_embedding(
-                test_case.question
+            retrieval_response = self.retriever.retrieve(
+                query=test_case.question,
+                top_k=top_k
             )
 
-            documents = self.retriever.retrieve(
-            query_embedding=query_embedding,
-            top_k=top_k
-            )
+            documents = retrieval_response.documents
 
             # ==========================================
             # Evaluate Retrieval
