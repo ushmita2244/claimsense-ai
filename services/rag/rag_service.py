@@ -15,6 +15,11 @@ from services.evaluation.answer_statistics_service import AnswerStatisticsServic
 from opik import opik_context
 from core.config.settings import settings
 from opik import track
+from services.memory.conversation_manager import ConversationManager
+from services.memory.history_formatter import HistoryFormatter
+from services.rewriting.query_rewriter import QueryRewriter
+from services.memory.conversation_window import ConversationWindow
+from services.guardrails.guardrail_service import GuardrailService
 
 class RAGService:
     """
@@ -29,6 +34,12 @@ class RAGService:
         self.attribution = AttributionService()
         self.evaluation = EvaluationService()
         self.answer_statistics = AnswerStatisticsService()
+        self.guardrail = GuardrailService()
+        self.conversation_manager = ConversationManager()
+        self.conversation_window = ConversationWindow(
+            max_messages=6
+        )
+        self.query_rewriter = QueryRewriter()
 
 
     @opik.track(
@@ -37,7 +48,8 @@ class RAGService:
     )
     def ask(
         self,
-        question: str
+        question: str,
+        session_id: str = "default"
     ) -> RAGResponse:
         """
         Answer a user's question using Retrieval-Augmented Generation.
@@ -45,13 +57,70 @@ class RAGService:
 
         with Timer() as total_timer:
             
+            # ==========================================
+            # Guardrail Validation
+            # ==========================================
+
+            guardrail_result = self.guardrail.validate(
+                question
+            )
+            
+            if not guardrail_result.allowed:
+
+                return RAGResponse(
+                    question=question,
+                    retrieved_documents=[],
+                    evaluation=None,
+                    answer=guardrail_result.reason
+                )
+            
+            # ==========================================
+            # Store User Message
+            # ==========================================
+
+            self.conversation_manager.add_user_message(
+                session_id=session_id,
+                content=question
+            )
+            
+            # ==========================================
+            # Get Conversation History
+            # ==========================================
+
+            history = self.conversation_manager.get_history(
+                session_id
+            )
+            
+            # ==========================================
+            # Build Conversation Window
+            # ==========================================
+            
+            window_history = self.conversation_window.build(
+                history
+            )
+
+            # ==========================================
+            # Format Conversation History
+            # ==========================================
+
+            formatted_history = HistoryFormatter.format(
+                window_history
+            )
+            # ==========================================
+            # Rewrite Question
+            # ==========================================
+
+            rewritten_question = self.query_rewriter.rewrite(
+                question=question,
+                conversation_history=formatted_history
+            )
 
             # Retrieval
             
             with Timer() as timer:
 
                 retrieval_response = self.retriever.retrieve(
-                    query=question
+                    query=rewritten_question
                 )
 
             retrieved_documents = retrieval_response.documents
@@ -73,7 +142,8 @@ class RAGService:
             with Timer() as timer:
                 prompt = RAGPrompt.build(
                     question=question,
-                    context=retrieved_documents
+                    context=retrieved_documents,
+                    conversation_history=formatted_history
                 )
             prompt_time = timer.elapsed
 
@@ -81,8 +151,18 @@ class RAGService:
             with Timer() as timer:
                 answer = self.llm.generate_response(prompt)
             llm_time = timer.elapsed
+            
+            # ==========================================
+            # Store  Assistant Message
+            # ==========================================
+            
+            self.conversation_manager.add_assistant_message(
+            session_id=session_id,
+            content=answer
+            )
 
         total_time = total_timer.elapsed
+            
             # ==================================================
             # Performance Metrics
             # ==================================================
@@ -118,6 +198,7 @@ class RAGService:
         opik_context.update_current_trace(
         metadata={
         "question": question,
+        "rewritten_question": rewritten_question,
         "retrieval_quality": diagnostics.retrieval_quality,
         "documents_retrieved": diagnostics.total_documents,
         "top_distance": diagnostics.top_distance,
@@ -130,6 +211,8 @@ class RAGService:
         "embedding_time": performance.embedding_time,
         "retrieval_time": performance.retrieval_time,
         "llm_time": performance.llm_time,
+        "guardrail_allowed": guardrail_result.allowed,
+        "guardrail_reason": guardrail_result.reason
         },
         tags=[
         "rag",

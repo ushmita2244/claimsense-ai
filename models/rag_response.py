@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from models.evaluation_report import EvaluationReport
 from models.retrieved_document import RetrievedDocument
+from typing import Optional
 
 
 @dataclass
@@ -14,6 +15,6 @@ class RAGResponse:
 
     retrieved_documents: list[RetrievedDocument]
 
-    evaluation: EvaluationReport
+    evaluation: Optional[EvaluationReport] = None
 
-    answer: str
+    answer: str = ""
