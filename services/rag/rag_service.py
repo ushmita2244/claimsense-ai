@@ -19,7 +19,10 @@ from services.memory.conversation_manager import ConversationManager
 from services.memory.history_formatter import HistoryFormatter
 from services.rewriting.query_rewriter import QueryRewriter
 from services.memory.conversation_window import ConversationWindow
-from services.guardrails.guardrail_service import GuardrailService
+from services.guardrails.knowledgebase_guardrail_service import GuardrailService
+from services.retrieval.hybrid_retriever import HybridRetriever
+from services.reranker.cross_encoder_reranker import CrossEncoderReranker
+from services.reranker.relevance_filter import RelevanceFilter
 
 class RAGService:
     """
@@ -28,7 +31,7 @@ class RAGService:
 
     def __init__(self):
 
-        self.retriever = Retriever()
+        # self.retriever = Retriever()
         self.llm = GeminiService()
         self.diagnostics = DiagnosticsService()
         self.attribution = AttributionService()
@@ -37,9 +40,12 @@ class RAGService:
         self.guardrail = GuardrailService()
         self.conversation_manager = ConversationManager()
         self.conversation_window = ConversationWindow(
-            max_messages=6
+            settings.MAX_CONVERSATION_MESSAGES
         )
         self.query_rewriter = QueryRewriter()
+        self.retriever = HybridRetriever()
+        self.reranker = CrossEncoderReranker()
+        self.relevance_filter = RelevanceFilter()
 
 
     @opik.track(
@@ -124,6 +130,30 @@ class RAGService:
                 )
 
             retrieved_documents = retrieval_response.documents
+            
+            # ==========================================
+            # Cross Encoder Reranking
+            # ==========================================
+
+            reranked_documents = self.reranker.rerank(
+                query=rewritten_question,
+                documents=retrieved_documents
+            )
+            
+            # ==========================================
+            # Relevance Filtering
+            # ==========================================
+
+            filtered_documents = self.relevance_filter.filter(
+                documents=reranked_documents,
+                score_threshold=settings.RERANK_SCORE_THRESHOLD,
+                minimum_documents=settings.MINIMUM_CONTEXT_DOCUMENTS
+            )
+
+            retrieved_documents = [
+                document.document
+                for document in filtered_documents
+            ]
 
             embedding_time = retrieval_response.embedding_time
 

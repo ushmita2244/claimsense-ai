@@ -1,4 +1,4 @@
-from services.guardrails.guardrail_service import GuardrailService
+from services.guardrails.knowledgebase_guardrail_service import GuardrailService
 
 
 def print_result(question, result):

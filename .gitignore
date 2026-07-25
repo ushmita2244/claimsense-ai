@@ -24,3 +24,19 @@ data/vectordb/
 # OS
 .DS_Store
 Thumbs.db
+
+# Chroma
+data/chroma/
+
+# SQLite
+*.db
+
+# Raw datasets
+data/raw/
+synthea/output/
+
+# Synthea
+synthea/*.jar
+
+# Logs
+*.log

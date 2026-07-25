@@ -8,4 +8,4 @@ class GuardrailResult(BaseModel):
 
     allowed: bool
 
-    reason: str
+    reason: str | None = None
