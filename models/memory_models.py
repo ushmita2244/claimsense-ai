@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Field
-
+from models.memory_category import MemoryCategory
 
 class MemoryRecord(BaseModel):
     """
-    Represents a semantic memory stored for a user session.
+    Represents a durable semantic memory stored for a user session.
     """
 
-    question: str
-
-    answer: str
+    memory: str
+    
+    category: MemoryCategory
 
     session_id: str
 
@@ -21,6 +21,8 @@ class RetrievedMemory(BaseModel):
     content: str
 
     score: float
+    
+    category: MemoryCategory
 
 
 class RetrieveMemoryRequest(BaseModel):

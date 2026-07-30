@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from models.retrieval_quality import RetrievalQuality
 
 
 @dataclass
@@ -15,4 +16,4 @@ class RetrievalDiagnostics:
 
     sources: list[str]
 
-    retrieval_quality: str
+    retrieval_quality: RetrievalQuality

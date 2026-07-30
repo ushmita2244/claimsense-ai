@@ -9,11 +9,13 @@ from models.memory_models import (
 
 from services.embeddings.embedding_service import EmbeddingService
 from services.vector_db.chroma_service import ChromaService
+from models.memory_category import MemoryCategory
 
 
 class MemoryRepository:
 
     COLLECTION_NAME = "claimsense_memory"
+    SIMILARITY_THRESHOLD = 0.8
 
     def __init__(
         self,
@@ -44,11 +46,14 @@ class MemoryRepository:
         Stores one conversation as semantic memory.
         """
 
-        document = (
-            f"Question: {record.question}\n\n"
-            f"Answer: {record.answer}"
-        )
-
+        document = record.memory
+        
+        # ===== DEBUG =====
+        print("\n========== STORING MEMORY ==========")
+        print(document)
+        print(f"Session ID: {record.session_id}")
+        print("====================================")
+    
         embedding = self.embedding_service.generate_embedding(
             document
         )
@@ -58,7 +63,8 @@ class MemoryRepository:
             text=document,
             embedding=embedding,
             metadata={
-                "session_id": record.session_id
+                "session_id": record.session_id,
+                "category": record.category.value,
             },
         )
 
@@ -85,16 +91,29 @@ class MemoryRepository:
 
         documents = results.get("documents", [[]])[0]
         distances = results.get("distances", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
 
         retrieved_memories = []
 
-        for document, distance in zip(documents, distances):
+        for document, distance, metadata in zip(documents, distances, metadatas):
+            
+            if distance > self.SIMILARITY_THRESHOLD:
+                continue
 
             retrieved_memories.append(
                 RetrievedMemory(
                     content=document,
                     score=distance,
+                    category=MemoryCategory(metadata["category"]),
                 )
             )
+            
+        print("\n===== DEBUG RETRIEVED MEMORIES =====")
+
+        for memory in retrieved_memories:
+            print(memory.content)
+            print(memory.score)
+
+        print("==============================")
 
         return retrieved_memories

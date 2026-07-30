@@ -10,6 +10,7 @@ class KnowledgeBaseTool(BaseTool):
     """
     Tool that answers questions using the enterprise healthcare
     knowledge base through the RAG pipeline.
+    
     """
 
     def __init__(
@@ -24,8 +25,9 @@ class KnowledgeBaseTool(BaseTool):
         return ToolDefinition(
             name="knowledge_base",
             description=(
-                "Answers questions using the enterprise healthcare "
-                "knowledge base."
+                    "Retrieve enterprise healthcare knowledge from documents "
+                    "and answer questions that require remembering information "
+                    "from previous conversations (semantic memory)."
             ),
             parameters=[
                 ToolParameter(
@@ -50,14 +52,23 @@ class KnowledgeBaseTool(BaseTool):
 
         question = kwargs["question"]
         
-        session_id = kwargs.get(
-            "session_id",
-            "default"
+        conversation_history = kwargs.get(
+            "conversation_history",
+            ""
         )
 
-        response = self.rag_service.ask(
+        semantic_memories = kwargs.get(
+            "semantic_memories",
+            []
+        )
+        
+        retrieval_context = kwargs["retrieval_context"]
+
+        response = self.rag_service.generate_answer(
             question=question,
-            session_id=session_id
+            context=retrieval_context,
+            conversation_history=conversation_history,
+            semantic_memories=semantic_memories,
         )
 
         return ToolResult(

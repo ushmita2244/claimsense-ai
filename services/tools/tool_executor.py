@@ -15,7 +15,8 @@ class ToolExecutor:
 
     def execute(
         self,
-        request: ToolRequest
+        request: ToolRequest,
+        **execution_context,
     )-> ToolResult:
 
         tool = self.registry.get_tool(
@@ -28,8 +29,12 @@ class ToolExecutor:
                 f"Unknown tool: {request.tool_name}"
             )
 
+        arguments = request.arguments or {}
+        
+        arguments.update(execution_context)
+        
         return tool.execute(
-            **request.arguments
+            **arguments
         )
 
     def list_tools(self):

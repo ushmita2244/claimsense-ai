@@ -3,9 +3,10 @@ import re
 import opik
 
 from models.guardrail_result import GuardrailResult
+from models.memory_models import RetrievedMemory
 
 
-class GuardrailService:
+class KnowledgeBaseGuardrailService:
     """
     Validates whether a user question is allowed
     to enter the RAG pipeline.
@@ -63,7 +64,8 @@ class GuardrailService:
     @opik.track(type="tool")
     def validate(
         self,
-        question: str
+        question: str,
+        semantic_memories: list[RetrievedMemory] | None = None,
     ) -> GuardrailResult:
         """
         Validate whether a question should
@@ -108,7 +110,15 @@ class GuardrailService:
                 lowered
             )
         )
-            
+        
+        # If we already have relevant semantic memories,
+        # allow the request to continue even if it isn't healthcare.
+
+        if semantic_memories:
+            return GuardrailResult(
+                allowed=True,
+                reason="Semantic memory query."
+            )
         
         if self._is_healthcare_question(words):
 

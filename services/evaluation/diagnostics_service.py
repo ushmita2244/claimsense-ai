@@ -1,5 +1,6 @@
 from models.retrieval_diagnostics import RetrievalDiagnostics
 from models.retrieved_document import RetrievedDocument
+from models.retrieval_quality import RetrievalQuality
 from core.config.settings import settings
 
 
@@ -12,6 +13,16 @@ class DiagnosticsService:
         self,
         documents: list[RetrievedDocument]
     ) -> RetrievalDiagnostics:
+        
+        if not documents:
+
+            return RetrievalDiagnostics(
+                total_documents=0,
+                top_distance=float("inf"),
+                average_distance=float("inf"),
+                sources=[],
+                retrieval_quality=RetrievalQuality.POOR,
+            )
 
         total_documents = len(documents)
 
@@ -34,16 +45,16 @@ class DiagnosticsService:
         )
 
         if top_distance < settings.EXCELLENT_DISTANCE_THRESHOLD:
-            quality = "Excellent"
+            quality = RetrievalQuality.EXCELLENT
 
         elif top_distance < settings.GOOD_DISTANCE_THRESHOLD:
-            quality = "Good"
+            quality = RetrievalQuality.GOOD
 
         elif top_distance < settings.AVERAGE_DISTANCE_THRESHOLD:
-            quality = "Average"
+            quality = RetrievalQuality.AVERAGE
 
         else:
-            quality = "Poor"
+            quality = RetrievalQuality.POOR
 
         return RetrievalDiagnostics(
             total_documents=total_documents,

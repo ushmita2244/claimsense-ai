@@ -9,9 +9,12 @@ class ConversationManager:
     Manages conversations for active sessions.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        memory_service: MemoryService,
+        ):
 
-        self.memory = MemoryService()
+        self.memory_service = memory_service
 
     def add_user_message(
         self,
@@ -22,7 +25,7 @@ class ConversationManager:
         Add a user message to the conversation.
         """
 
-        history = self.memory.get_history(
+        history = self.memory_service.get_history(
             session_id
         )
 
@@ -44,7 +47,7 @@ class ConversationManager:
         Add an assistant response.
         """
 
-        history = self.memory.get_history(
+        history = self.memory_service.get_history(
             session_id
         )
 
@@ -65,7 +68,7 @@ class ConversationManager:
         Return a conversation.
         """
 
-        return self.memory.get_history(
+        return self.memory_service.get_history(
             session_id
         )
 
@@ -77,6 +80,6 @@ class ConversationManager:
         Delete a conversation.
         """
 
-        self.memory.clear(
+        self.memory_service.clear(
             session_id
         )

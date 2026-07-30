@@ -5,6 +5,10 @@ from models.memory_models import (
     RetrieveMemoryRequest,
     RetrievedMemory,
 )
+from services.memory.memory_extractor import MemoryExtractor
+from services.memory.memory_retrieval_policy import MemoryRetrievalPolicy
+from models.memory_category import MemoryCategory
+from services.memory.memory_selector import MemorySelector
 
 class MemoryService:
     """
@@ -12,7 +16,7 @@ class MemoryService:
     """
 
     def __init__(
-        self, 
+        self,
         memory_repository: MemoryRepository | None = None,
         ):
 
@@ -23,6 +27,7 @@ class MemoryService:
             if memory_repository is not None
             else MemoryRepository()
         )
+        self.memory_extractor = MemoryExtractor()
 
     def get_history(
         self,
@@ -70,12 +75,27 @@ class MemoryService:
         Store a conversation in semantic memory.
         """
 
-        record = MemoryRecord(
+        result = self.memory_extractor.extract(
             question=question,
             answer=answer,
+        )
+        
+        print("\n========== MEMORY EXTRACTION ==========")
+        print(f"Question      : {question}")
+        print(f"Should Store : {result.should_store}")
+        print(f"Memory       : {result.memory}")
+        print("=======================================\n")
+        
+        if not result.should_store:
+            print("Memory skipped.")
+            return
+        
+        # For now, create the record here
+        record = MemoryRecord(
+            memory=result.memory,
+            category=result.category,
             session_id=session_id,
         )
-
         self.memory_repository.store(record)
         
         
@@ -86,8 +106,21 @@ class MemoryService:
         top_k: int = 3,
     ) -> list[RetrievedMemory]:
         """
-        Retrieve the most relevant semantic memories for the current session.
+        Retrieve only the semantic memories relevant to the current query.
         """
+
+        # ==========================================
+        # Classify the query
+        # ==========================================
+
+        category = MemoryRetrievalPolicy.classify(query)
+
+        if category == MemoryCategory.NONE:
+            return []
+
+        # ==========================================
+        # Retrieve candidate memories
+        # ==========================================
 
         request = RetrieveMemoryRequest(
             query=query,
@@ -95,4 +128,17 @@ class MemoryService:
             top_k=top_k,
         )
 
-        return self.memory_repository.retrieve(request)
+        retrieved_memories = self.memory_repository.retrieve(
+            request
+        )
+
+        # ==========================================
+        # Select only relevant memories
+        # ==========================================
+
+        selected_memories = MemorySelector.select(
+            category=category,
+            memories=retrieved_memories,
+        )
+
+        return selected_memories

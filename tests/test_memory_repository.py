@@ -1,147 +1,204 @@
 from unittest.mock import Mock
 
+from models.memory_category import MemoryCategory
 from models.memory_models import (
     MemoryRecord,
     RetrieveMemoryRequest,
 )
 
-from services.memory.memory_repository import (
-    MemoryRepository,
-)
+from services.memory.memory_repository import MemoryRepository
 
-def test_store_memory():
 
-    mock_embedding = Mock()
+class TestMemoryRepository:
 
-    mock_embedding.generate_embedding.return_value = [0.1, 0.2, 0.3]
+    def test_store_memory(self):
 
-    mock_chroma = Mock()
+        mock_embedding = Mock()
+        mock_embedding.generate_embedding.return_value = [0.1, 0.2, 0.3]
 
-    repository = MemoryRepository(
-        chroma_service=mock_chroma,
-        embedding_service=mock_embedding,
-    )
+        mock_chroma = Mock()
 
-    record = MemoryRecord(
-        question="I have diabetes",
-        answer="Follow a healthy diet.",
-        session_id="session-123",
-    )
+        repository = MemoryRepository(
+            chroma_service=mock_chroma,
+            embedding_service=mock_embedding,
+        )
 
-    repository.store(record)
+        record = MemoryRecord(
+            memory="User prefers Python.",
+            category=MemoryCategory.PREFERENCE,
+            session_id="session-123",
+        )
 
-    mock_embedding.generate_embedding.assert_called_once()
+        repository.store(record)
 
-    mock_chroma.add_document.assert_called_once()
+        mock_embedding.generate_embedding.assert_called_once_with(
+            "User prefers Python."
+        )
 
-    args = mock_chroma.add_document.call_args.kwargs
+        mock_chroma.add_document.assert_called_once()
 
-    assert "Question:" in args["text"]
+        args = mock_chroma.add_document.call_args.kwargs
 
-    assert "Answer:" in args["text"]
+        assert args["text"] == "User prefers Python."
 
-    assert args["metadata"] == {
-        "session_id": "session-123"
-    }
-    
+        assert args["embedding"] == [0.1, 0.2, 0.3]
 
-def test_retrieve_memory():
+        assert args["metadata"] == {
+            "session_id": "session-123",
+            "category": "preference",
+        }
 
-    mock_embedding = Mock()
+    def test_retrieve_memory(self):
 
-    mock_embedding.generate_embedding.return_value = [0.1, 0.2]
+        mock_embedding = Mock()
+        mock_embedding.generate_embedding.return_value = [0.5, 0.6]
 
-    mock_chroma = Mock()
+        mock_chroma = Mock()
 
-    mock_chroma.search.return_value = {
-        "documents": [
-            [
-                "Question: Diabetes\nAnswer: Healthy diet"
-            ]
-        ],
-        "distances": [
-            [
-                0.14
-            ]
-        ],
-    }
+        mock_chroma.search.return_value = {
+            "documents": [
+                [
+                    "User prefers Python."
+                ]
+            ],
+            "distances": [
+                [
+                    0.18
+                ]
+            ],
+            "metadatas": [
+                [
+                    {
+                        "category": "preference"
+                    }
+                ]
+            ],
+        }
 
-    repository = MemoryRepository(
-        chroma_service=mock_chroma,
-        embedding_service=mock_embedding,
-    )
+        repository = MemoryRepository(
+            chroma_service=mock_chroma,
+            embedding_service=mock_embedding,
+        )
 
-    request = RetrieveMemoryRequest(
-        query="diet",
-        session_id="session-123",
-    )
+        request = RetrieveMemoryRequest(
+            query="What do I prefer?",
+            session_id="session-123",
+        )
 
-    memories = repository.retrieve(request)
+        memories = repository.retrieve(request)
 
-    assert len(memories) == 1
+        assert len(memories) == 1
 
-    assert memories[0].content.startswith("Question:")
+        assert memories[0].content == "User prefers Python."
 
-    assert memories[0].score == 0.14
-    
-    
-def test_retrieve_empty():
+        assert memories[0].score == 0.18
 
-    mock_embedding = Mock()
+        assert memories[0].category == MemoryCategory.PREFERENCE
 
-    mock_embedding.generate_embedding.return_value = [0.1]
+    def test_retrieve_empty(self):
 
-    mock_chroma = Mock()
+        mock_embedding = Mock()
+        mock_embedding.generate_embedding.return_value = [0.1]
 
-    mock_chroma.search.return_value = {
-        "documents": [[]],
-        "distances": [[]],
-    }
+        mock_chroma = Mock()
 
-    repository = MemoryRepository(
-        chroma_service=mock_chroma,
-        embedding_service=mock_embedding,
-    )
+        mock_chroma.search.return_value = {
+            "documents": [[]],
+            "distances": [[]],
+            "metadatas": [[]],
+        }
 
-    request = RetrieveMemoryRequest(
-        query="diet",
-        session_id="session-123",
-    )
+        repository = MemoryRepository(
+            chroma_service=mock_chroma,
+            embedding_service=mock_embedding,
+        )
 
-    memories = repository.retrieve(request)
+        request = RetrieveMemoryRequest(
+            query="Anything",
+            session_id="session-123",
+        )
 
-    assert memories == []
-    
-    
-def test_session_filter():
+        memories = repository.retrieve(request)
 
-    mock_embedding = Mock()
+        assert memories == []
 
-    mock_embedding.generate_embedding.return_value = [0.2]
+    def test_similarity_threshold(self):
 
-    mock_chroma = Mock()
+        mock_embedding = Mock()
+        mock_embedding.generate_embedding.return_value = [0.1]
 
-    mock_chroma.search.return_value = {
-        "documents": [[]],
-        "distances": [[]],
-    }
+        mock_chroma = Mock()
 
-    repository = MemoryRepository(
-        chroma_service=mock_chroma,
-        embedding_service=mock_embedding,
-    )
+        mock_chroma.search.return_value = {
+            "documents": [
+                [
+                    "Relevant memory",
+                    "Irrelevant memory",
+                ]
+            ],
+            "distances": [
+                [
+                    0.20,
+                    0.95,
+                ]
+            ],
+            "metadatas": [
+                [
+                    {
+                        "category": "goal",
+                    },
+                    {
+                        "category": "goal",
+                    },
+                ]
+            ],
+        }
 
-    request = RetrieveMemoryRequest(
-        query="diet",
-        session_id="abc123",
-    )
+        repository = MemoryRepository(
+            chroma_service=mock_chroma,
+            embedding_service=mock_embedding,
+        )
 
-    repository.retrieve(request)
+        request = RetrieveMemoryRequest(
+            query="goal",
+            session_id="session-123",
+        )
 
-    mock_chroma.search.assert_called_once_with(
-        query_embedding=[0.2],
-        top_k=3,
-        where={
-            "session_id": "abc123"
-        },
-    )
+        memories = repository.retrieve(request)
+
+        assert len(memories) == 1
+
+        assert memories[0].content == "Relevant memory"
+
+    def test_session_filter(self):
+
+        mock_embedding = Mock()
+        mock_embedding.generate_embedding.return_value = [0.2]
+
+        mock_chroma = Mock()
+
+        mock_chroma.search.return_value = {
+            "documents": [[]],
+            "distances": [[]],
+            "metadatas": [[]],
+        }
+
+        repository = MemoryRepository(
+            chroma_service=mock_chroma,
+            embedding_service=mock_embedding,
+        )
+
+        request = RetrieveMemoryRequest(
+            query="goal",
+            session_id="abc123",
+        )
+
+        repository.retrieve(request)
+
+        mock_chroma.search.assert_called_once_with(
+            query_embedding=[0.2],
+            top_k=3,
+            where={
+                "session_id": "abc123",
+            },
+        )

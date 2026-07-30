@@ -1,28 +1,24 @@
-import opik
-from core.utils.timer import Timer
-from models import retrieval_response
-from services.prompts.rag_prompt import RAGPrompt
-from services.embeddings.embedding_service import EmbeddingService
-from services.llm.gemini_service import GeminiService
-from services.retrieval.retriever import Retriever
-from services.evaluation.diagnostics_service import DiagnosticsService
 
+from core.utils.timer import Timer
+from services.evaluation.diagnostics_service import DiagnosticsService
 from models.rag_response import RAGResponse
 from models.performance_metrics import PerformanceMetrics
-from services.attribution.attribution_service import AttributionService
 from services.evaluation.evaluation_service import EvaluationService
 from services.evaluation.answer_statistics_service import AnswerStatisticsService
-from opik import opik_context
+
 from core.config.settings import settings
-from opik import track
-from services.memory.conversation_manager import ConversationManager
-from services.memory.history_formatter import HistoryFormatter
-from services.rewriting.query_rewriter import QueryRewriter
-from services.memory.conversation_window import ConversationWindow
-from services.guardrails.knowledgebase_guardrail_service import GuardrailService
+
+from models.retrieval_response import RetrievalResponse
 from services.retrieval.hybrid_retriever import HybridRetriever
 from services.reranker.cross_encoder_reranker import CrossEncoderReranker
 from services.reranker.relevance_filter import RelevanceFilter
+
+from models.memory_models import RetrievedMemory
+from models.retrieval_quality import RetrievalQuality
+
+from services.answer_generation.kb_answer_generator import KBAnswerGenerator
+from services.answer_generation.web_answer_generator import WebAnswerGenerator
+from models.retrieval_context import RetrievalContext
 
 class RAGService:
     """
@@ -31,171 +27,125 @@ class RAGService:
 
     def __init__(self):
 
-        # self.retriever = Retriever()
-        self.llm = GeminiService()
         self.diagnostics = DiagnosticsService()
-        self.attribution = AttributionService()
         self.evaluation = EvaluationService()
         self.answer_statistics = AnswerStatisticsService()
-        self.guardrail = GuardrailService()
-        self.conversation_manager = ConversationManager()
-        self.conversation_window = ConversationWindow(
-            settings.MAX_CONVERSATION_MESSAGES
-        )
-        self.query_rewriter = QueryRewriter()
         self.retriever = HybridRetriever()
         self.reranker = CrossEncoderReranker()
         self.relevance_filter = RelevanceFilter()
+        self.kb_generator = KBAnswerGenerator()
+        self.web_generator = WebAnswerGenerator()
 
+    def retrieve(
+        self,
+        query: str,
+    ) -> RetrievalResponse:
+        """
+        Retrieve, rerank and filter documents.
+        """
 
-    @opik.track(
-    type="general",
-    project_name=settings.OPIK_PROJECT_NAME
-    )
-    def ask(
+        retrieval_response = self.retriever.retrieve(
+            query=query
+        )
+
+        reranked_documents = self.reranker.rerank(
+            query=query,
+            documents=retrieval_response.documents,
+        )
+
+        filtered_documents = self.relevance_filter.filter(
+            documents=reranked_documents,
+            score_threshold=settings.RERANK_SCORE_THRESHOLD,
+            minimum_documents=settings.MINIMUM_CONTEXT_DOCUMENTS,
+        )
+
+        documents = [
+            document.document
+            for document in filtered_documents
+        ]
+
+        return RetrievalResponse(
+            documents=documents,
+            embedding_time=retrieval_response.embedding_time,
+            retrieval_time=retrieval_response.retrieval_time,
+        )
+        
+        
+    def build_retrieval_context(
+        self,
+        rewritten_question: str,
+        retrieval_response: RetrievalResponse,
+    ) -> RetrievalContext:
+                
+        diagnostics = self.diagnostics.analyze(
+            retrieval_response.documents
+        )
+
+        return RetrievalContext(
+            rewritten_question=rewritten_question,
+            retrieved_documents=retrieval_response.documents,
+            diagnostics=diagnostics,
+            embedding_time=retrieval_response.embedding_time,
+            retrieval_time=retrieval_response.retrieval_time,
+        )
+
+    
+    def generate_answer(
         self,
         question: str,
-        session_id: str = "default"
+        context: RetrievalContext,
+        conversation_history: str,
+        semantic_memories: list[RetrievedMemory] | None,
     ) -> RAGResponse:
-        """
-        Answer a user's question using Retrieval-Augmented Generation.
-        """
-
+        
+        rewritten_question = context.rewritten_question
+        retrieved_documents = context.retrieved_documents
+        diagnostics = context.diagnostics
+        embedding_time = context.embedding_time
+        retrieval_time = context.retrieval_time
+        
         with Timer() as total_timer:
             
-            # ==========================================
-            # Guardrail Validation
-            # ==========================================
-
-            guardrail_result = self.guardrail.validate(
-                question
-            )
+            # ==================================================
+            # Answer Generation
+            # ==================================================
             
-            if not guardrail_result.allowed:
+            if diagnostics.retrieval_quality is RetrievalQuality.POOR:
 
-                return RAGResponse(
-                    question=question,
-                    retrieved_documents=[],
-                    evaluation=None,
-                    answer=guardrail_result.reason
-                )
-            
-            # ==========================================
-            # Store User Message
-            # ==========================================
-
-            self.conversation_manager.add_user_message(
-                session_id=session_id,
-                content=question
-            )
-            
-            # ==========================================
-            # Get Conversation History
-            # ==========================================
-
-            history = self.conversation_manager.get_history(
-                session_id
-            )
-            
-            # ==========================================
-            # Build Conversation Window
-            # ==========================================
-            
-            window_history = self.conversation_window.build(
-                history
-            )
-
-            # ==========================================
-            # Format Conversation History
-            # ==========================================
-
-            formatted_history = HistoryFormatter.format(
-                window_history
-            )
-            # ==========================================
-            # Rewrite Question
-            # ==========================================
-
-            rewritten_question = self.query_rewriter.rewrite(
-                question=question,
-                conversation_history=formatted_history
-            )
-
-            # Retrieval
-            
-            with Timer() as timer:
-
-                retrieval_response = self.retriever.retrieve(
-                    query=rewritten_question
+                generation_result = self.web_generator.generate(
+                    question=rewritten_question,
+                    retrieved_documents=retrieved_documents,
+                    conversation_history=conversation_history,
+                    semantic_memories=semantic_memories,
                 )
 
-            retrieved_documents = retrieval_response.documents
-            
-            # ==========================================
-            # Cross Encoder Reranking
-            # ==========================================
+            else:
 
-            reranked_documents = self.reranker.rerank(
-                query=rewritten_question,
-                documents=retrieved_documents
-            )
-            
-            # ==========================================
-            # Relevance Filtering
-            # ==========================================
-
-            filtered_documents = self.relevance_filter.filter(
-                documents=reranked_documents,
-                score_threshold=settings.RERANK_SCORE_THRESHOLD,
-                minimum_documents=settings.MINIMUM_CONTEXT_DOCUMENTS
-            )
-
-            retrieved_documents = [
-                document.document
-                for document in filtered_documents
-            ]
-
-            embedding_time = retrieval_response.embedding_time
-
-            retrieval_time = retrieval_response.retrieval_time
-
-            # Diagnostics
-            
-            diagnostics = self.diagnostics.analyze(retrieved_documents)
-            
-            #Citations
-            
-            citations = self.attribution.build(retrieved_documents)
-
-            # Prompt
-            
-            with Timer() as timer:
-                prompt = RAGPrompt.build(
-                    question=question,
-                    context=retrieved_documents,
-                    conversation_history=formatted_history
+                generation_result = self.kb_generator.generate(
+                    question=rewritten_question,
+                    retrieved_documents=retrieved_documents,
+                    conversation_history=conversation_history,
+                    semantic_memories=semantic_memories,
                 )
-            prompt_time = timer.elapsed
 
-            # LLM
-            with Timer() as timer:
-                answer = self.llm.generate_response(prompt)
-            llm_time = timer.elapsed
+            answer = generation_result.answer
+
+            answer_source = generation_result.answer_source
+
+            citations = generation_result.citations
+
+            retrieved_documents = generation_result.retrieved_documents
+
+            prompt_time = generation_result.prompt_time
+
+            llm_time = generation_result.llm_time
             
-            # ==========================================
-            # Store  Assistant Message
-            # ==========================================
-            
-            self.conversation_manager.add_assistant_message(
-            session_id=session_id,
-            content=answer
-            )
 
         total_time = total_timer.elapsed
             
-            # ==================================================
-            # Performance Metrics
-            # ==================================================
+        # ==================================================
+        # Performance Metrics
+        # ==================================================
 
         performance = PerformanceMetrics(
             embedding_time=embedding_time,
@@ -225,33 +175,6 @@ class RAGService:
             answer_statistics=answer_statistics
         )
         
-        opik_context.update_current_trace(
-        metadata={
-        "question": question,
-        "rewritten_question": rewritten_question,
-        "retrieval_quality": diagnostics.retrieval_quality,
-        "documents_retrieved": diagnostics.total_documents,
-        "top_distance": diagnostics.top_distance,
-        "average_distance": diagnostics.average_distance,
-        "sources": diagnostics.sources,
-        "answer_words": answer_statistics.word_count,
-        "answer_characters": answer_statistics.character_count,
-        "answer_lines": answer_statistics.line_count,
-        "total_time": performance.total_time,
-        "embedding_time": performance.embedding_time,
-        "retrieval_time": performance.retrieval_time,
-        "llm_time": performance.llm_time,
-        "guardrail_allowed": guardrail_result.allowed,
-        "guardrail_reason": guardrail_result.reason
-        },
-        tags=[
-        "rag",
-        "gemini",
-        "chromadb",
-        "healthcare",
-        "evaluation"
-        ]
-        )
         
         # ==================================================
         # Final Response
@@ -261,5 +184,8 @@ class RAGService:
             question=question,
             retrieved_documents=retrieved_documents,
             evaluation=evaluation,
-            answer=answer
+            answer=answer,
+            answer_source=answer_source,
         )
+        
+        

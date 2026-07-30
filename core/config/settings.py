@@ -1,6 +1,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
+    
+    DATABASE_PATH: Path = PROJECT_ROOT / "data" / "healthcare.db"
+    
     GOOGLE_API_KEY: str
     MODEL_NAME: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str
