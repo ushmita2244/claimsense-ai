@@ -186,6 +186,7 @@ class RAGService:
             evaluation=evaluation,
             answer=answer,
             answer_source=answer_source,
+            citations=citations,
         )
         
         

@@ -17,6 +17,9 @@ from services.guardrails.output_guardrail_service import OutputGuardrailService
 from services.memory.conversation_manager import ConversationManager
 from services.web_search.web_search_service import WebSearchService
 from services.guardrails.knowledgebase_guardrail_service import KnowledgeBaseGuardrailService
+from services.memory.conversation_window import ConversationWindow
+from services.memory.history_formatter import HistoryFormatter
+from services.guardrails.agent_guardrail_service import AgentGuardrailService
 
 
 class ServiceContainer:
@@ -43,6 +46,9 @@ class ServiceContainer:
         self._guardrail_service: KnowledgeBaseGuardrailService | None = None
         self._conversation_manager: ConversationManager | None = None
         self._web_search_service: WebSearchService | None = None
+        self._conversation_window: ConversationWindow | None = None
+        self._history_formatter: HistoryFormatter | None = None
+        self._agent_guardrail_service: AgentGuardrailService | None = None
 
     # =====================================================
     # Query Rewriter
@@ -173,6 +179,20 @@ class ServiceContainer:
     
     
     @property
+    def agent_guardrail_service(
+        self,
+    ) -> AgentGuardrailService:
+
+        if self._agent_guardrail_service is None:
+
+            self._agent_guardrail_service = (
+                AgentGuardrailService()
+            )
+
+        return self._agent_guardrail_service
+    
+    
+    @property
     def knowledgebase_guardrail_service(
         self,
     ) -> KnowledgeBaseGuardrailService:
@@ -239,3 +259,24 @@ class ServiceContainer:
 
         return self._web_search_service
     
+    
+    @property
+    def conversation_window(self) -> ConversationWindow:
+
+        if self._conversation_window is None:
+
+            self._conversation_window = ConversationWindow(
+                max_messages=settings.CONVERSATION_WINDOW_SIZE,
+            )
+
+        return self._conversation_window
+
+
+    @property
+    def history_formatter(self) -> HistoryFormatter:
+
+        if self._history_formatter is None:
+
+            self._history_formatter = HistoryFormatter()
+
+        return self._history_formatter

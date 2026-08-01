@@ -18,6 +18,12 @@ class ResponseFinalizationService:
         question: str,
         response: str,
     ) -> None:
+        
+        # Store user message
+        self.conversation_manager.add_user_message(
+            session_id=session_id,
+            content=question,
+        )
 
         self.conversation_manager.add_assistant_message(
             session_id=session_id,

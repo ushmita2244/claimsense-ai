@@ -10,7 +10,7 @@ def main():
     
 
     state = AgentState(
-        question="What is Lung Cancer, give its 2 causes.",
+        question="Can you give me latest guidelines on Covid-19 by WHO?",
         session_id="test-session",
         conversation_history="",
     )

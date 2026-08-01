@@ -22,13 +22,13 @@ class GraphBuilder:
 
         return state["planner_result"].type
     
-    def route_after_guardrails(
+    def route_after_agent_guardrail(
         self,
         state: AgentState,
     ) -> str:
 
         if state["guardrail_result"].allowed:
-            return "retrieve_rag"
+            return "rewrite_query"
 
         return "blocked_response"
     
@@ -38,6 +38,11 @@ class GraphBuilder:
         builder = StateGraph(AgentState)
         
         # Nodes
+        
+        builder.add_node(
+            "load_conversation",
+            self.nodes.load_conversation_node,
+        )
 
         builder.add_node(
             "rewrite_query",
@@ -50,19 +55,19 @@ class GraphBuilder:
         )
         
         builder.add_node(
-            "guardrails",
-            self.nodes.guardrails_node
-            )
+            "retrieve_rag",
+            self.nodes.retrieve_rag_node,
+        )
+        
+        builder.add_node(
+            "agent_guardrail",
+            self.nodes.agent_guardrail_node,
+        )
         
         builder.add_node(
             "blocked_response",
             self.nodes.blocked_response_node
             )
-        
-        builder.add_node(
-            "retrieve_rag",
-            self.nodes.retrieve_rag_node,
-        )
         
         builder.add_node(
             "plan",
@@ -91,9 +96,16 @@ class GraphBuilder:
         
         # Entry
         
-        builder.set_entry_point("rewrite_query")
+        builder.set_entry_point(
+            "load_conversation",
+        )
         
         # Edges
+        
+        builder.add_edge(
+            "load_conversation",
+            "agent_guardrail",
+        )
         
         builder.add_edge(
             "rewrite_query",
@@ -101,21 +113,22 @@ class GraphBuilder:
         )
         
         builder.add_edge(
-            "retrieve_memory", "guardrails"
-            )
-        
-        builder.add_conditional_edges(
-            "guardrails",
-            self.route_after_guardrails,
-            {
-                "retrieve_rag": "retrieve_rag",
-                "blocked_response": "blocked_response",
-            },
+            "retrieve_memory",
+            "retrieve_rag",
         )
         
         builder.add_edge(
             "retrieve_rag",
             "plan",
+        )
+        
+        builder.add_conditional_edges(
+            "agent_guardrail",
+            self.route_after_agent_guardrail,
+            {
+                "rewrite_query": "rewrite_query",
+                "blocked_response": "blocked_response",
+            },
         )
         
         builder.add_conditional_edges(

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Any
 
 from models.memory_models import RetrievedMemory
 from models.retrieval_response import RetrievalResponse
@@ -6,7 +6,6 @@ from models.planner_result import PlannerResult
 from models.retrieval_context import RetrievalContext
 from models.guardrail_result import GuardrailResult
 from models.tool_result import ToolResult
-
 
 class AgentState(TypedDict, total=False):
 
@@ -39,4 +38,5 @@ class AgentState(TypedDict, total=False):
     # Final response
     final_answer: str
     
+    citations: list[Any]
     

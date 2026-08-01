@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     
     RERANK_SCORE_THRESHOLD: float = 0.0
     MINIMUM_CONTEXT_DOCUMENTS: int = 2
+    
+    CONVERSATION_WINDOW_SIZE: int = 8
 
     model_config = SettingsConfigDict(
         env_file=".env",

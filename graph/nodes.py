@@ -13,10 +13,31 @@ class GraphNodes:
 
     def __init__(self, container: ServiceContainer) -> None:
         self.container = container
+        
+        
+    def load_conversation_node(
+        self,
+        state: AgentState,
+    ) -> dict:
+
+
+        history = self.container.conversation_manager.get_history(
+            session_id=state["session_id"],
+        )
+
+        window = self.container.conversation_window.build(history)
+
+        conversation_history =  self.container.history_formatter.format(
+            window
+        )
+
+        return {
+            "conversation_history": conversation_history,
+        }
+        
 
     def rewrite_query_node(self, state: AgentState) -> dict:
         
-        print(">>> rewrite_query_node")
 
         rewritten_question = self.container.query_rewriter.rewrite(
             question=state["question"],
@@ -31,7 +52,6 @@ class GraphNodes:
             
     def retrieve_memory_node(self, state: AgentState) -> dict:
         
-        print(">>> retrieve_memory_node")
         
         retrieved_memories = self.container.memory_service.retrieve_memories(
             query = state["rewritten_question"],
@@ -42,25 +62,27 @@ class GraphNodes:
             "retrieved_memories" : retrieved_memories
         }
         
-        
-    def guardrails_node(self, state: AgentState) -> dict:
-        
-        print(">>> guardrails_node")
-        
-        guardrail_result = (
-            self.container.knowledgebase_guardrail_service.validate(
-                question=state["rewritten_question"],
-                semantic_memories=state["retrieved_memories"],
+    
+    def agent_guardrail_node(
+        self,
+        state: AgentState,
+    ) -> dict:
+
+
+        result = (
+            self.container.agent_guardrail_service.validate(
+                question=state["question"],
             )
         )
+
         return {
-            "guardrail_result": guardrail_result,
+            "guardrail_result": result,
         }
+    
         
         
     def retrieve_rag_node(self, state: AgentState,) -> dict:
         
-        print(">>> retrieve_rag_node")
 
         retrieval_response = self.container.rag_service.retrieve(
             query=state["rewritten_question"]
@@ -84,8 +106,6 @@ class GraphNodes:
         state: AgentState,
     ) -> dict:
         
-        print(">>> plan_node")
-
         planner_result = self.container.planner_service.plan(
             query=state["rewritten_question"]
         )
@@ -102,8 +122,6 @@ class GraphNodes:
         self,
         state: AgentState,
     ) -> dict:
-        
-        print(">>> execute_tool_node")
 
         planner_result = state["planner_result"]
         
@@ -134,8 +152,6 @@ class GraphNodes:
         state: AgentState,
     ) -> dict:
         
-        print(">>> generate_answer_node")
-        
         planner_result = state["planner_result"]
         
         if planner_result.type == "answer":
@@ -154,6 +170,7 @@ class GraphNodes:
         
         return {
             "final_answer" : response,
+            "citations": state["tool_result"].metadata.get("citations", []),
         }
         
         
@@ -161,8 +178,6 @@ class GraphNodes:
         self,
         state: AgentState,
     ) -> dict:
-        
-        print(">>> validate_output_node")
 
         validated_response = (
             self.container.output_validation_service.validate(
@@ -179,8 +194,6 @@ class GraphNodes:
         self,
         state: AgentState,
     ) -> dict:
-
-        print(">>> finalize_response_node")
         
         self.container.response_finalization_service.finalize(
             session_id=state["session_id"],
@@ -196,8 +209,6 @@ class GraphNodes:
         self,
         state: AgentState,
     ) -> dict:
-
-        print(">>> blocked_response_node")
 
         guardrail_result = state["guardrail_result"]
 
@@ -216,3 +227,14 @@ class GraphNodes:
         }
     
     
+    def guardrails_node(self, state: AgentState) -> dict:
+        
+        guardrail_result = (
+            self.container.knowledgebase_guardrail_service.validate(
+                question=state["rewritten_question"],
+                semantic_memories=state["retrieved_memories"],
+            )
+        )
+        return {
+            "guardrail_result": guardrail_result,
+        }

@@ -4,6 +4,8 @@ from graph.state import AgentState
 import opik
 from core.config.settings import settings
 from opik import opik_context
+from models.agent_response import AIInsights
+from models.graph_response import GraphResponse
 
 
 class GraphService:
@@ -25,7 +27,7 @@ class GraphService:
     def run(
         self,
         state: AgentState,
-    ) -> AgentState:
+    ) -> GraphResponse:
         
         """
         Execute the LangGraph workflow and return the final agent state.
@@ -97,5 +99,62 @@ class GraphService:
             },
             tags=["langgraph", "claimsense-ai"],
         )
+        
+        diagnostics = (
+            retrieval_context.diagnostics
+            if retrieval_context
+            else None
+        )
 
-        return result
+        insights = AIInsights(
+
+            planner=(
+                planner_result.type
+                if planner_result
+                else "-"
+            ),
+
+            tool=(
+                planner_result.tool_request.tool_name
+                if planner_result
+                and planner_result.tool_request
+                else "-"
+            ),
+
+            retrieval_quality=(
+                diagnostics.retrieval_quality.name
+                if diagnostics
+                else "-"
+            ),
+
+            memory_count=len(
+                result.get(
+                    "retrieved_memories",
+                    []
+                )
+            ),
+
+            embedding_time=(
+                retrieval_context.embedding_time
+                if retrieval_context
+                else 0.0
+            ),
+
+            retrieval_time=(
+                retrieval_context.retrieval_time
+                if retrieval_context
+                else 0.0
+            ),
+        )
+        
+        citations = (
+            tool_result.metadata.get("citations", [])
+            if tool_result
+            else []
+        )
+
+        return GraphResponse(
+            state=result,
+            insights=insights,
+            citations=citations,
+        )

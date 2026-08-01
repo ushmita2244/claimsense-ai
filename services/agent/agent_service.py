@@ -1,5 +1,6 @@
 from graph.graph_service import GraphService
 from graph.state import AgentState
+from models.agent_response import AgentResponse
 
 class AgentService:
 
@@ -13,7 +14,7 @@ class AgentService:
         self,
         prompt: str,
         session_id: str = "default",
-    ) -> str:
+    ) -> AgentResponse:
 
         state: AgentState = {
             "question": prompt,
@@ -21,6 +22,10 @@ class AgentService:
             "session_id": session_id,
         }
 
-        result = self.graph_service.run(state)
+        graph_response = self.graph_service.run(state)
 
-        return result["final_answer"]
+        return AgentResponse(
+            answer=graph_response.state["final_answer"],
+            insights=graph_response.insights,
+            citations=graph_response.citations,
+        )

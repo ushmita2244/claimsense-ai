@@ -75,6 +75,7 @@ class KnowledgeBaseTool(BaseTool):
             output=response.answer,
             metadata={
                 "retrieved_documents": response.retrieved_documents,
-                "evaluation": response.evaluation
+                "evaluation": response.evaluation,
+                "citations": response.citations,
             }
         )
