@@ -355,25 +355,36 @@ Every question follows this workflow.
 
 ## Landing Page
 
-> Add screenshot here
+<img width="1920" height="1080" alt="Screenshot (998)" src="https://github.com/user-attachments/assets/3e4c6399-b24a-4d00-aa79-f6203c44ec46" />
+
 
 ---
 
 ## AI Chat
 
-> Add screenshot here
+<img width="1920" height="1080" alt="Screenshot (999)" src="https://github.com/user-attachments/assets/0587cd8d-d328-479f-9a5d-99f0787215d6" />
+
 
 ---
 
 ## AI Insights
 
-> Add screenshot here
+<img width="1920" height="1080" alt="Screenshot (1000)" src="https://github.com/user-attachments/assets/2d069b5f-4879-4168-a99a-d5a491e84fc5" />
+
 
 ---
 
-## Source Attribution
+## Rename Chat Option
 
-> Add screenshot here
+<img width="1920" height="1080" alt="Screenshot (1003)" src="https://github.com/user-attachments/assets/ac1cc15e-def8-4e23-841b-bf40d528ce27" />
+
+
+---
+
+## Delete Chat Option
+
+<img width="1920" height="1080" alt="Screenshot (1004)" src="https://github.com/user-attachments/assets/7ade241f-ac4a-4193-bd74-24cbe759ec4d" />
+
 
 ---
 
