@@ -1,9 +1,11 @@
 from models.tool_definition import ToolDefinition
 from models.tool_parameter import ToolParameter
 from models.tool_result import ToolResult
+from models.knowledge_source import KnowledgeSource
 
 from services.rag.rag_service import RAGService
 from services.tools.base_tool import BaseTool
+
 
 
 class KnowledgeBaseTool(BaseTool):
@@ -77,5 +79,6 @@ class KnowledgeBaseTool(BaseTool):
                 "retrieved_documents": response.retrieved_documents,
                 "evaluation": response.evaluation,
                 "citations": response.citations,
-            }
+            },
+            knowledge_sources=response.knowledge_sources,
         )

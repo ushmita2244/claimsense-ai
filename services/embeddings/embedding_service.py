@@ -12,10 +12,16 @@ class EmbeddingService:
         type = "tool"
     )
     def generate_embedding(self, text: str) -> list[float]:
+        
+        text = text.strip()
+        if not text:
+            raise ValueError("Cannot generate embedding for empty text.")
+        
         response = self.client.models.embed_content(
             model = settings.EMBEDDING_MODEL,
             contents = text
         )
+        
         return response.embeddings[0].values
     
     

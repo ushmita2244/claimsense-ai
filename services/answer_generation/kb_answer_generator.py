@@ -46,6 +46,10 @@ class KBAnswerGenerator(AnswerGenerator):
             answer = self.llm.generate_response(
                 prompt
             )
+            
+            supplemented_with_general_knowledge = (
+                "general medical knowledge" in answer.lower()
+            )
 
         llm_time = timer.elapsed
 
@@ -56,4 +60,5 @@ class KBAnswerGenerator(AnswerGenerator):
             retrieved_documents=retrieved_documents,
             prompt_time=prompt_time,
             llm_time=llm_time,
+            supplemented_with_general_knowledge=supplemented_with_general_knowledge,
         )

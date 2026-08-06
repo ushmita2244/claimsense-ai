@@ -1,6 +1,7 @@
 from sympy import SympifyError
 from sympy import sympify
 
+from models.knowledge_source import KnowledgeSource
 from models.tool_definition import ToolDefinition
 from services.tools.base_tool import BaseTool
 from models.tool_parameter import ToolParameter
@@ -46,7 +47,10 @@ class CalculatorTool(BaseTool):
                 output=str(result),
                 metadata={
                     "expression": expression
-                }
+                },
+                knowledge_sources=[
+                    KnowledgeSource.CALCULATOR,
+                ],
             )
 
         except SympifyError:
@@ -55,5 +59,8 @@ class CalculatorTool(BaseTool):
                 output="Invalid mathematical expression.",
                 metadata={
                     "expression": expression
-                }
+                },
+                knowledge_sources=[
+                    KnowledgeSource.CALCULATOR,
+                ],
             )

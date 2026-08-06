@@ -5,6 +5,8 @@ from models.tool_definition import (
 
 from models.tool_result import ToolResult
 
+from models.knowledge_source import KnowledgeSource
+
 from models.web_search_models import (
     WebSearchRequest,
 )
@@ -101,4 +103,11 @@ class MedicalWebSearchTool(BaseTool):
 
         return ToolResult(
             output=formatted_response,
+            metadata={
+                "citations": response.sources,
+            },
+            knowledge_sources=[
+                KnowledgeSource.WEB_SEARCH,
+                KnowledgeSource.GENERAL_MEDICAL_KNOWLEDGE,
+            ],
         )

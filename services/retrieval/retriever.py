@@ -28,6 +28,14 @@ class Retriever(BaseRetriever):
         Retrieve the most relevant documents from the vector database.
         """
         
+        if not query.strip():
+
+            return RetrievalResponse(
+                documents=[],
+                embedding_time=0,
+                retrieval_time=0,
+            )
+        
         with Timer() as timer:
 
             query_embedding = self.embedding_service.generate_embedding(

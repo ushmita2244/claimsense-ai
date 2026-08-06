@@ -9,23 +9,35 @@ class OutputGuardrailService:
     returned to the user.
     """
 
-    MAX_RESPONSE_LENGTH = 4000
+    MAX_RESPONSE_LENGTH = 10000
 
     ABSOLUTE_CLAIMS = [
         "guaranteed",
         "100%",
         "always",
         "never",
-        "completely safe",
         "no side effects",
-        "cures",
+        "completely safe",
+        "miracle cure",
+        "instantly",
+        "works for everyone",
+        "will definitely",
         "will cure",
+        "cures",
     ]
-
+    
     FALLBACK_RESPONSE = (
         "I couldn't generate a response that meets the application's "
         "safety requirements. Please consult a qualified healthcare "
         "professional for medical advice."
+    )
+
+    DISCLAIMER = (
+        "\n\n⚠️ **Medical Disclaimer:** "
+        "This information is for educational purposes only and "
+        "should not replace professional medical advice. "
+        "Consult a qualified healthcare provider for diagnosis "
+        "or treatment decisions."
     )
 
     @opik.track(
@@ -57,7 +69,11 @@ class OutputGuardrailService:
 
         if len(response) > self.MAX_RESPONSE_LENGTH:
 
-            violations.append("Response exceeds maximum length.")
+            response = (
+                response[: self.MAX_RESPONSE_LENGTH]
+                + "\n\n..."
+                + "\n(Response truncated.)"
+            )
 
         # ==========================================
         # Absolute Medical Claims
@@ -79,18 +95,33 @@ class OutputGuardrailService:
 
         if violations:
 
-            result = OutputGuardrailResult(
+            return OutputGuardrailResult(
                 is_valid=False,
                 response=self.FALLBACK_RESPONSE,
                 violations=violations,
             )
 
-        else:
+        medical_keywords = [
+            "medication",
+            "drug",
+            "treatment",
+            "therapy",
+            "dose",
+            "tablet",
+            "capsule",
+            "chemotherapy",
+            "antibiotic",
+            "insulin",
+        ]
 
-            result = OutputGuardrailResult(
-                is_valid=True,
-                response=response,
-            )
+        if any(keyword in lower_response for keyword in medical_keywords):
+
+            response += self.DISCLAIMER
+
+        result =  OutputGuardrailResult(
+            is_valid=True,
+            response=response,
+        )
 
         opik.update_current_span(
             metadata={

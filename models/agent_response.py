@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any
+from models.knowledge_source import KnowledgeSource
 
 
 @dataclass
@@ -14,6 +15,7 @@ class AIInsights:
     prompt_time: float = 0.0
     llm_time: float = 0.0
     total_latency: float = 0.0
+    knowledge_sources: list[KnowledgeSource] = field(default_factory=list)
 
 
 @dataclass

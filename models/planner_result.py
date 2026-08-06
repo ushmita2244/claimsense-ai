@@ -18,3 +18,4 @@ class PlannerResult(BaseModel):
     tool_request: ToolRequest | None = None
 
     response: str | None = None
+    

@@ -10,6 +10,7 @@ from models.tool_result import ToolResult
 from services.sql.sql_response_formatter import SQLResponseFormatter
 from services.sql.sql_service import SQLService
 from services.tools.base_tool import BaseTool
+from models.knowledge_source import KnowledgeSource
 
 
 class SQLTool(BaseTool):
@@ -92,6 +93,9 @@ class SQLTool(BaseTool):
                 "row_count": sql_response.row_count,
                 "execution_time_ms": sql_response.execution_time_ms,
             },
+            knowledge_sources=[
+                KnowledgeSource.SQL_DATABASE,
+            ],
         )
 
 

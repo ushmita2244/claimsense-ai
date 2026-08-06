@@ -1,5 +1,6 @@
 
 from core.utils.timer import Timer
+from models.answer_source import AnswerSource
 from services.evaluation.diagnostics_service import DiagnosticsService
 from models.rag_response import RAGResponse
 from models.performance_metrics import PerformanceMetrics
@@ -10,11 +11,13 @@ from core.config.settings import settings
 
 from models.retrieval_response import RetrievalResponse
 from services.retrieval.hybrid_retriever import HybridRetriever
-from services.reranker.cross_encoder_reranker import CrossEncoderReranker
+#from services.reranker.cross_encoder_reranker import CrossEncoderReranker
+from services.reranker.noop_reranker import NoOpReranker
 from services.reranker.relevance_filter import RelevanceFilter
 
 from models.memory_models import RetrievedMemory
 from models.retrieval_quality import RetrievalQuality
+from models.knowledge_source import KnowledgeSource
 
 from services.answer_generation.kb_answer_generator import KBAnswerGenerator
 from services.answer_generation.web_answer_generator import WebAnswerGenerator
@@ -31,7 +34,8 @@ class RAGService:
         self.evaluation = EvaluationService()
         self.answer_statistics = AnswerStatisticsService()
         self.retriever = HybridRetriever()
-        self.reranker = CrossEncoderReranker()
+        #self.reranker = CrossEncoderReranker()
+        self.reranker = NoOpReranker()
         self.relevance_filter = RelevanceFilter()
         self.kb_generator = KBAnswerGenerator()
         self.web_generator = WebAnswerGenerator()
@@ -140,6 +144,34 @@ class RAGService:
 
             llm_time = generation_result.llm_time
             
+            # ==================================================
+            # Knowledge Sources
+            # ==================================================
+
+            knowledge_sources: list[KnowledgeSource] = []
+
+            if answer_source == AnswerSource.KNOWLEDGE_BASE:
+
+                knowledge_sources.append(
+                    KnowledgeSource.ENTERPRISE_KB
+                )
+
+            elif answer_source == AnswerSource.WEB_SEARCH:
+
+                knowledge_sources.append(
+                    KnowledgeSource.WEB_SEARCH
+                )
+
+                knowledge_sources.append(
+                    KnowledgeSource.GENERAL_MEDICAL_KNOWLEDGE
+                )
+
+            if semantic_memories:
+
+                knowledge_sources.append(
+                    KnowledgeSource.CONVERSATION_MEMORY
+                )
+            
 
         total_time = total_timer.elapsed
             
@@ -187,6 +219,7 @@ class RAGService:
             answer=answer,
             answer_source=answer_source,
             citations=citations,
+            knowledge_sources=knowledge_sources,
         )
         
         

@@ -39,6 +39,12 @@ class GraphService:
         guardrail_result = result.get("guardrail_result")
         planner_result = result.get("planner_result")
         tool_result = result.get("tool_result")
+        
+        knowledge_sources = (
+            tool_result.knowledge_sources
+            if tool_result
+            else []
+        )
 
         opik_context.update_current_trace(
             metadata={
@@ -145,6 +151,8 @@ class GraphService:
                 if retrieval_context
                 else 0.0
             ),
+            
+            knowledge_sources=knowledge_sources,
         )
         
         citations = (
@@ -158,3 +166,4 @@ class GraphService:
             insights=insights,
             citations=citations,
         )
+        

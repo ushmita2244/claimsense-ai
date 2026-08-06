@@ -22,3 +22,5 @@ class AnswerGenerationResult:
     prompt_time: float
 
     llm_time: float
+    
+    supplemented_with_general_knowledge: bool = False

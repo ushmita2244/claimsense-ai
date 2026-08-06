@@ -1,6 +1,13 @@
 import streamlit as st
 from models.agent_response import AIInsights
+from models.knowledge_source import KnowledgeSource
 from ui.components.metric_card import render_metric_card
+
+SOURCE_ICONS = {
+    KnowledgeSource.ENTERPRISE_KB: "📄",
+    KnowledgeSource.CONVERSATION_MEMORY: "💬",
+    KnowledgeSource.WEB_SEARCH: "🌐",
+}
 
 def render_ai_insights(
     insights: AIInsights,
@@ -41,8 +48,27 @@ def render_ai_insights(
                 "Memory",
                 str(insights.memory_count),
             )
+            
+                # =====================================================
+        # Knowledge Sources
+        # =====================================================
+
+        if insights.knowledge_sources:
+
+            st.markdown("#### 📚 Knowledge Sources")
+
+            for source in insights.knowledge_sources:
+                
+                icon = SOURCE_ICONS.get(source, "•")
+
+                st.markdown(f"{icon} {source.value}")
+                
+        else:
+            st.caption("No external knowledge sources used.")
+                
 
         st.markdown("#### ⚡ Pipeline Performance")
+        
 
         col1, col2 = st.columns(2)
 

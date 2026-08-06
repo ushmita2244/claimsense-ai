@@ -26,6 +26,28 @@ class QueryRewriter:
         if not conversation_history.strip():
 
             return question
+        
+        normalized = question.strip().lower()
+
+        small_talk = {
+            "hi",
+            "hello",
+            "hey",
+            "thanks",
+            "thank you",
+            "thanks!",
+            "thank you!",
+            "ok",
+            "okay",
+            "great",
+            "awesome",
+            "cool",
+            "bye",
+            "goodbye",
+        }
+
+        if normalized in small_talk:
+            return question
 
         prompt = f"""
 You are a query rewriting assistant.
@@ -59,6 +81,9 @@ STANDALONE QUESTION
 
         rewritten_question = self.llm.generate_response(
             prompt
-        )
+        ).strip()
 
-        return rewritten_question.strip()
+        if not rewritten_question:
+            return question
+        
+        return rewritten_question
