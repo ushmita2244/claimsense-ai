@@ -442,6 +442,8 @@ LinkedIn: https://linkedin.com/in/ushmita-marwaha24
 
 GitHub: https://github.com/ushmita2244
 
+Deployed App: https://claimsense-ai-frjj.onrender.com/
+
 ---
 
 # License
